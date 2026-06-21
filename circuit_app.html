@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かいろたんけん隊 ～スイッチ・モーター・かん電池～</title>
+<style>
+  :root{
+    --bg-deep:#0f3057;
+    --bg-mid:#1c5d8c;
+    --panel:#fff8e7;
+    --accent-yellow:#ffc93c;
+    --accent-orange:#ff8c42;
+    --accent-red:#e8503a;
+    --accent-blue:#2b9cd8;
+    --accent-green:#3ec9a7;
+    --ink:#102a43;
+    --wire-core:#ffd23f;
+    --wire-core-off:#7c8fa6;
+    --wire-casing:#243b53;
+    font-family: "Hiragino Maru Gothic Pro","Yu Gothic","Noto Sans JP",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(circle at 20% 0%, var(--bg-mid), var(--bg-deep) 70%);
+    color:var(--ink);
+    min-height:100vh;
+    padding:14px;
+  }
+  .wrap{max-width:1200px;margin:0 auto;}
+  header{text-align:center;color:#fff;margin-bottom:10px;}
+  header h1{
+    font-size:clamp(22px,4vw,34px);
+    margin:4px 0 2px;
+    letter-spacing:1px;
+    text-shadow:0 3px 0 rgba(0,0,0,0.25);
+  }
+  header p{margin:0;font-size:14px;opacity:0.85;}
+
+  .layout{display:grid;grid-template-columns: 1fr 300px;gap:14px;}
+  @media (max-width:840px){.layout{grid-template-columns: 1fr;}}
+
+  .board-card{
+    background: var(--panel);
+    border-radius:22px;
+    padding:14px;
+    box-shadow: 0 10px 0 rgba(0,0,0,0.18), 0 18px 30px rgba(0,0,0,0.25);
+    position:relative;
+  }
+
+  .modebar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .modebar button{
+    border:none;border-radius:12px;padding:8px 6px;font-size:12.5px;font-weight:700;
+    cursor:pointer;background:#dfe9f3;color:var(--ink);
+    box-shadow:0 3px 0 rgba(0,0,0,0.15);transition: transform .12s;
+    min-width:42px;
+  }
+  .modebar button#freeBtn{min-width:88px;background:#bcd4ea;}
+  .modebar button.active{background: var(--accent-blue);color:#fff;transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,0.2);}
+  .modebar button:hover{transform:translateY(-1px);}
+  .probgrid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+
+  .goal{
+    background:#fff;border:2px dashed var(--accent-orange);border-radius:14px;
+    padding:8px 12px;font-size:13.5px;margin-bottom:10px;min-height:20px;line-height:1.55;
+  }
+  .goal b{color:var(--accent-red);}
+  .goal .tag{
+    display:inline-block;background:var(--accent-orange);color:#fff;font-size:11.5px;
+    padding:2px 8px;border-radius:8px;margin-right:6px;font-weight:700;
+  }
+
+  svg#board{
+    width:100%;height:auto;touch-action:none;
+    background:
+      linear-gradient(0deg, rgba(43,156,216,0.05) 1px, transparent 1px) 0 0/100% 26px,
+      linear-gradient(90deg, rgba(43,156,216,0.05) 1px, transparent 1px) 0 0/26px 100%,
+      #f1f6fb;
+    border-radius:16px;cursor:default;user-select:none;
+  }
+  .term{cursor:pointer;}
+  .term-dot{fill:#fff;stroke:var(--ink);stroke-width:2.5;transition: fill .15s, r .15s;}
+  .term:hover .term-dot{r:12;}
+  .term.selected .term-dot{fill:var(--accent-yellow);stroke:var(--accent-orange);}
+  .term-plus .term-dot{stroke:var(--accent-red);}
+  .term-minus .term-dot{stroke:var(--accent-blue);}
+  .term-plus-label{fill:var(--accent-red);font-size:20px;font-weight:900;text-anchor:middle;}
+  .term-minus-label{fill:var(--accent-blue);font-size:20px;font-weight:900;text-anchor:middle;}
+
+  .wire-casing{stroke:var(--wire-casing);stroke-width:11;stroke-linecap:round;fill:none;cursor:pointer;}
+  .wire-core{stroke:var(--wire-core-off);stroke-width:6;stroke-linecap:round;fill:none;pointer-events:none;transition: stroke .25s;}
+  .wire-core.on{stroke:var(--wire-core);}
+  .wire-hit{stroke:transparent;stroke-width:22;fill:none;cursor:pointer;}
+  .wire-hit:hover + .wire-core, .wire-group:hover .wire-core{filter:drop-shadow(0 0 4px rgba(232,80,58,0.8));}
+
+  .comp-label{font-size:14px;font-weight:700;fill:var(--ink);text-anchor:middle;}
+  .comp-sub{font-size:10.5px;fill:#5b7083;text-anchor:middle;}
+
+  .battery-body{fill:#fdf6e3;stroke:var(--ink);stroke-width:3;}
+  .battery-cap-plus{fill:#3a3a3a;}
+  .battery-cap-minus{fill:#3a3a3a;}
+  .battery-stripe{fill:var(--accent-orange);}
+
+  .switch-base{fill:#cdd7e2;stroke:var(--ink);stroke-width:3;}
+  .switch-lever{stroke:#2c3e50;stroke-width:6;stroke-linecap:round;cursor:pointer;}
+  .switch-pivot{fill:#102a43;}
+
+  .motor-circle{fill:#eafaf3;stroke:var(--ink);stroke-width:3;}
+  .motor-hub{fill:#fff;stroke:#102a43;stroke-width:2.5;}
+  .propeller-blade{fill:#3ec9a7;stroke:#102a43;stroke-width:2;}
+
+  .sidebar{display:flex;flex-direction:column;gap:12px;}
+  .status-card, .help-card{
+    background: var(--panel);border-radius:18px;padding:14px 16px;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.18), 0 14px 22px rgba(0,0,0,0.2);
+  }
+  .status-card h2,.help-card h2{margin:0 0 8px;font-size:15px;color:var(--accent-red);}
+  .status-light{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .status-dot{width:18px;height:18px;border-radius:50%;background:#bbb;box-shadow: inset 0 0 0 3px rgba(0,0,0,0.1);flex-shrink:0;}
+  .status-dot.on{background:var(--accent-yellow); box-shadow:0 0 14px var(--accent-yellow);}
+  #statusText{font-size:14px;font-weight:700;}
+  #statusDetail{font-size:12.5px;color:#3c5469;line-height:1.6;margin:0;}
+
+  .help-card ol,.help-card ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.7;color:#3c5469;}
+  .help-card li{margin-bottom:4px;}
+
+  .resetbar{display:flex;gap:8px;}
+  .resetbar button{
+    flex:1;border:none;border-radius:12px;padding:10px;font-weight:700;font-size:13px;
+    cursor:pointer;background:var(--accent-green);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,0.15);
+  }
+  .resetbar button.secondary{background:#9fb3c8;}
+  .resetbar button:active{transform:translateY(2px); box-shadow:none;}
+
+  .success-banner{
+    display:none;background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+    color:#fff;font-weight:700;text-align:center;padding:10px;border-radius:14px;
+    margin-bottom:10px;font-size:14px;animation: pop .4s ease;
+  }
+  @keyframes pop{0%{transform:scale(0.8);opacity:0;}100%{transform:scale(1);opacity:1;}}  .press-switch-btn{
+    display:block;width:100%;border:none;border-radius:14px;padding:12px;
+    font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px;
+    background:var(--accent-orange);color:#fff;
+    box-shadow:0 4px 0 rgba(0,0,0,0.2);transition: transform .1s, background .2s;
+  }
+  .press-switch-btn.is-on{background:var(--accent-green);}
+  .press-switch-btn:active{transform:translateY(3px); box-shadow:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚡ かいろたんけん隊</h1>
+    <p>かん電池・スイッチ・モーターを線でつないで、かいろを完成させよう！</p>
+  </header>
+
+  <div class="layout">
+    <div class="board-card">
+      <div class="modebar">
+        <button id="freeBtn" class="active">じゆうに あそぶ</button>
+      </div>
+      <div class="probgrid" id="probGrid"></div>
+      <div class="goal" id="goalText">かん電池・スイッチ・モーターを、すきなように線でつないでみよう。たんしの○をタップして線をつなぐよ。</div>
+      <button id="pressSwitchBtn" class="press-switch-btn">⚡ スイッチを押す（今:OFF）</button>
+      <div class="success-banner" id="successBanner">🎉 せいかい！すばらしいかいろだ！</div>
+
+      <svg id="board" viewBox="0 0 760 560" xmlns="http://www.w3.org/2000/svg">
+        <g id="compLayer"></g>
+        <g id="wireLayer"></g>
+        <g id="termLayer"></g>
+      </svg>
+    </div>
+
+    <div class="sidebar">
+      <div class="status-card">
+        <h2>かいろの ようす</h2>
+        <div class="status-light">
+          <div class="status-dot" id="statusDot"></div>
+          <div id="statusText">かいろは まだ できていません</div>
+        </div>
+        <p id="statusDetail">パーツの○（たんし）をタップして、線をつないでみよう。</p>
+      </div>
+
+      <div class="help-card">
+        <h2>つかいかた</h2>
+        <ol>
+          <li>つなぎたい たんし（○）を タップ</li>
+          <li>もう一つの たんしを タップすると 線がつながる</li>
+          <li>線をタップすると 線が消える</li>
+          <li>スイッチ部分をタップすると ON/OFF が切りかわる</li>
+        </ol>
+        <ul>
+          <li>直列：2このかん電池を 一本のじゅんろでつなぐ → モーターが <b>はやく</b>回る</li>
+          <li>並列：2このかん電池をべつべつの道でモーターにつなぐ → 速さは1このときと同じ、長持ちする</li>
+        </ul>
+      </div>
+
+      <div class="resetbar">
+        <button id="clearWires">線をぜんぶ消す</button>
+        <button id="resetAll" class="secondary">最初からやりなおす</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- Slot layout (board positions) ---------------- */
+const slots = {
+  TL:{x:190,y:150}, TR:{x:570,y:150}, BL:{x:190,y:420}, BR:{x:570,y:420}
+};
+const boardCenter = {x:380, y:280};
+
+/* relative terminal offsets per component kind */
+const offsets = {
+  battery: { minus:{x:-90,y:0}, plus:{x:108,y:0} },
+  switch:  { a:{x:-55,y:20}, b:{x:55,y:20} },
+  motor:   { a:{x:-72,y:0}, b:{x:72,y:0} },
+};
+
+/* 10 problems: each maps component -> slot, plus target circuit type */
+const layouts = [
+  {TL:'bat1', TR:'switch', BL:'bat2', BR:'motor'},
+  {TL:'motor', TR:'bat1', BL:'switch', BR:'bat2'},
+  {TL:'switch', TR:'bat2', BL:'motor', BR:'bat1'},
+  {TL:'bat2', TR:'motor', BL:'bat1', BR:'switch'},
+  {TL:'bat1', TR:'bat2', BL:'motor', BR:'switch'},
+  {TL:'switch', TR:'motor', BL:'bat1', BR:'bat2'},
+  {TL:'motor', TR:'bat2', BL:'switch', BR:'bat1'},
+  {TL:'bat2', TR:'switch', BL:'bat1', BR:'motor'},
+  {TL:'bat1', TR:'motor', BL:'switch', BR:'bat2'},
+  {TL:'switch', TR:'bat1', BL:'bat2', BR:'motor'},
+];
+const problems = layouts.map((layout, i) => ({
+  num: i+1,
+  type: (i % 2 === 0) ? 'series' : 'parallel',
+  layout
+}));
+const freeLayout = {TL:'bat1', TR:'switch', BL:'bat2', BR:'motor'};
+
+/* ---------------- State ---------------- */
+let currentLayout = freeLayout;
+let mode = 'free'; // 'free' or problem number
+let switchOn = false;
+let userWires = [];
+let selectedTerm = null;
+let terminals = {};
+let compCenters = {};
+
+const svg = document.getElementById('board');
+const compLayer = document.getElementById('compLayer');
+const termLayer = document.getElementById('termLayer');
+const wireLayer = document.getElementById('wireLayer');
+
+function applyLayout(layout){
+  compCenters = {};
+  terminals = {};
+  Object.entries(layout).forEach(([slotKey, compKey])=>{
+    const c = slots[slotKey];
+    compCenters[compKey] = {x:c.x, y:c.y};
+    if(compKey==='bat1' || compKey==='bat2'){
+      terminals[compKey+'_minus'] = {x:c.x+offsets.battery.minus.x, y:c.y+offsets.battery.minus.y, pole:'minus'};
+      terminals[compKey+'_plus']  = {x:c.x+offsets.battery.plus.x,  y:c.y+offsets.battery.plus.y,  pole:'plus'};
+    } else if(compKey==='switch'){
+      terminals['sw_a'] = {x:c.x+offsets.switch.a.x, y:c.y+offsets.switch.a.y, pole:null};
+      terminals['sw_b'] = {x:c.x+offsets.switch.b.x, y:c.y+offsets.switch.b.y, pole:null};
+    } else if(compKey==='motor'){
+      terminals['m_a'] = {x:c.x+offsets.motor.a.x, y:c.y+offsets.motor.a.y, pole:null};
+      terminals['m_b'] = {x:c.x+offsets.motor.b.x, y:c.y+offsets.motor.b.y, pole:null};
+    }
+  });
+}
+
+
+/* ---------------- Drawing helpers ---------------- */
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  Object.entries(attrs||{}).forEach(([k,v])=>e.setAttribute(k,v));
+  return e;
+}
+
+function drawBattery(group, center, label){
+  const cx=center.x, cy=center.y;
+  const g = el('g',{});
+  // body (flat on the minus side, slightly narrower so the plus nub clearly sticks out further)
+  g.appendChild(el('rect',{class:'battery-body', x:cx-80, y:cy-45, width:160, height:90, rx:14}));
+  // minus terminal: perfectly flush with the body edge, NO protrusion
+  g.appendChild(el('rect',{class:'battery-cap-minus', x:cx-80, y:cy-32, width:7, height:64, rx:1}));
+  // plus terminal: body cap + a narrower nub clearly sticking OUT beyond the body
+  g.appendChild(el('rect',{class:'battery-cap-plus', x:cx+73, y:cy-20, width:14, height:40, rx:2}));
+  g.appendChild(el('rect',{class:'battery-cap-plus', x:cx+87, y:cy-10, width:14, height:20, rx:3}));
+  // orange stripe to look battery-like
+  g.appendChild(el('rect',{class:'battery-stripe', x:cx-35, y:cy-45, width:28, height:90}));
+  // big plus/minus signs
+  const minusTxt = el('text',{x:cx-58, y:cy+8, class:'term-minus-label'}); minusTxt.textContent='−';
+  const plusTxt = el('text',{x:cx+58, y:cy+8, class:'term-plus-label'}); plusTxt.textContent='+';
+  g.appendChild(minusTxt); g.appendChild(plusTxt);
+  const labelEl = el('text',{class:'comp-label', x:cx, y:cy-55}); labelEl.textContent=label;
+  g.appendChild(labelEl);
+  group.appendChild(g);
+}
+
+function drawSwitch(group, center, on){
+  const cx=center.x, cy=center.y;
+  const g = el('g',{});
+  g.appendChild(el('rect',{class:'switch-base', x:cx-85, y:cy-45, width:170, height:90, rx:16}));
+  const labelEl = el('text',{class:'comp-label', x:cx, y:cy-55}); labelEl.textContent='スイッチ';
+  g.appendChild(labelEl);
+  const pivot = {x:cx-55, y:cy+20};
+  const contact = {x:cx+55, y:cy+20};
+  const tip = on ? contact : {x:cx+30, y:cy-15};
+  const lever = el('line',{class:'switch-lever', x1:pivot.x, y1:pivot.y, x2:tip.x, y2:tip.y, stroke: on? '#3ec9a7':'#2c3e50'});
+  lever.style.cursor='pointer';
+  lever.addEventListener('click', (e)=>{ e.stopPropagation(); switchOn=!switchOn; render(); });
+  g.appendChild(el('circle',{class:'switch-pivot', cx:pivot.x, cy:pivot.y, r:6}));
+  g.appendChild(el('circle',{class:'switch-pivot', cx:contact.x, cy:contact.y, r:6}));
+  g.appendChild(lever);
+  const sub = el('text',{class:'comp-sub', x:cx, y:cy+45}); sub.textContent = on ? 'タップでON/OFF（今:ON）':'タップでON/OFF（今:OFF）';
+  g.appendChild(sub);
+  // clicking base also toggles
+  g.querySelector('rect').style.cursor='pointer';
+  g.querySelector('rect').addEventListener('click', (e)=>{ e.stopPropagation(); switchOn=!switchOn; render(); });
+  group.appendChild(g);
+}
+
+let spinAngle = 0;
+function drawMotor(group, center, angle, label){
+  const cx=center.x, cy=center.y;
+  const g = el('g',{});
+  g.appendChild(el('circle',{class:'motor-circle', cx:cx, cy:cy, r:75}));
+  const labelEl = el('text',{class:'comp-label', x:cx, y:cy+100}); labelEl.textContent = label || 'モーター';
+  g.appendChild(labelEl);
+
+  const propG = el('g',{transform:`rotate(${angle} ${cx} ${cy})`});
+  // 3-blade propeller using teardrop paths
+  for(let i=0;i<3;i++){
+    const a = i*120;
+    const blade = el('path',{
+      class:'propeller-blade',
+      transform:`rotate(${a} ${cx} ${cy})`,
+      d:`M ${cx} ${cy}
+         C ${cx-10} ${cy-30}, ${cx-6} ${cy-58}, ${cx} ${cy-64}
+         C ${cx+6} ${cy-58}, ${cx+10} ${cy-30}, ${cx} ${cy}
+         Z`
+    });
+    propG.appendChild(blade);
+  }
+  g.appendChild(propG);
+  g.appendChild(el('circle',{class:'motor-hub', cx:cx, cy:cy, r:11}));
+  group.appendChild(g);
+}
+
+function drawTerminals(){
+  termLayer.innerHTML = '';
+  Object.entries(terminals).forEach(([key, t])=>{
+    const g = el('g',{class:'term'});
+    if(t.pole==='plus') g.classList.add('term-plus');
+    if(t.pole==='minus') g.classList.add('term-minus');
+    if(selectedTerm === key) g.classList.add('selected');
+    g.setAttribute('data-term', key);
+    const c = el('circle',{cx:t.x, cy:t.y, r:10, class:'term-dot'});
+    g.appendChild(c);
+    g.addEventListener('click', (e)=>{ e.stopPropagation(); onTermClick(key); });
+    termLayer.appendChild(g);
+  });
+}
+
+function onTermClick(key){
+  if(selectedTerm === null){
+    selectedTerm = key;
+  } else if(selectedTerm === key){
+    selectedTerm = null;
+  } else {
+    const exists = userWires.findIndex(w => (w.a===selectedTerm&&w.b===key)||(w.a===key&&w.b===selectedTerm));
+    if(exists>=0){ userWires.splice(exists,1); }
+    else { userWires.push({a:selectedTerm, b:key}); }
+    selectedTerm = null;
+  }
+  render();
+}
+
+/* Each terminal has a fixed "exit direction" (the way the wire leaves the
+   component), independent of which board slot the component sits in.
+   Routing a wire by first heading out along this direction means the wire
+   visibly clears the component's own body before curving toward the other
+   terminal, instead of cutting across the part or hiding behind it. */
+function normalize(x,y){ const d=Math.hypot(x,y)||1; return {x:x/d, y:y/d}; }
+const exitDir = {
+  bat1_minus: normalize(offsets.battery.minus.x, offsets.battery.minus.y),
+  bat1_plus:  normalize(offsets.battery.plus.x,  offsets.battery.plus.y),
+  bat2_minus: normalize(offsets.battery.minus.x, offsets.battery.minus.y),
+  bat2_plus:  normalize(offsets.battery.plus.x,  offsets.battery.plus.y),
+  sw_a: normalize(offsets.switch.a.x, offsets.switch.a.y),
+  sw_b: normalize(offsets.switch.b.x, offsets.switch.b.y),
+  m_a: normalize(offsets.motor.a.x, offsets.motor.a.y),
+  m_b: normalize(offsets.motor.b.x, offsets.motor.b.y),
+};
+
+
+/* bounding boxes (relative to each component's own center) used to detect
+   when a straight-ish wire would cross directly over another part's body */
+const compBBox = {
+  battery: {minX:-95, maxX:115, minY:-50, maxY:50},
+  switch:  {minX:-90, maxX:90,  minY:-50, maxY:50},
+  motor:   {minX:-80, maxX:80,  minY:-80, maxY:80},
+};
+function compKindOf(compKey){
+  if(compKey==='switch') return 'switch';
+  if(compKey==='motor') return 'motor';
+  return 'battery';
+}
+function ownerOfTerminal(termKey){
+  if(termKey.startsWith('bat1')) return 'bat1';
+  if(termKey.startsWith('bat2')) return 'bat2';
+  if(termKey.startsWith('sw')) return 'switch';
+  return 'motor';
+}
+function rectFor(compKey){
+  const c = compCenters[compKey];
+  const b = compBBox[compKindOf(compKey)];
+  return { minX:c.x+b.minX, maxX:c.x+b.maxX, minY:c.y+b.minY, maxY:c.y+b.maxY, cy:c.y, cx:c.x, compKey };
+}
+/* does the straight line from (x1,y1) to (x2,y2) pass through this rect? */
+function lineCrossesRect(x1,y1,x2,y2, rect){
+  if(rect.compKey==='motor'){
+    // true circle test: closest distance from the motor's center to the segment
+    const radius = 78;
+    const dx=x2-x1, dy=y2-y1;
+    const len2 = dx*dx+dy*dy || 1;
+    let t = ((rect.cx-x1)*dx + (rect.cy-y1)*dy)/len2;
+    t = Math.max(0, Math.min(1, t));
+    const px = x1+dx*t, py = y1+dy*t;
+    const dist = Math.hypot(px-rect.cx, py-rect.cy);
+    return dist < radius;
+  }
+  const loX = Math.max(Math.min(x1,x2), rect.minX);
+  const hiX = Math.min(Math.max(x1,x2), rect.maxX);
+  if(hiX - loX < 15) return false; // not enough horizontal overlap to matter
+  const midX = (loX+hiX)/2;
+  const t = (x2-x1)!==0 ? (midX-x1)/(x2-x1) : 0.5;
+  const yAtMid = y1 + (y2-y1)*Math.max(0,Math.min(1,t));
+  return yAtMid > rect.minY+4 && yAtMid < rect.maxY-4;
+}
+
+function wirePath(t1, t2, key1, key2){
+  const x1=t1.x, y1=t1.y, x2=t2.x, y2=t2.y;
+  const dist = Math.hypot(x2-x1, y2-y1) || 1;
+  const dir1 = exitDir[key1] || {x:0,y:0};
+  const dir2 = exitDir[key2] || {x:0,y:0};
+  const stub = Math.min(110, Math.max(42, dist*0.4));
+
+  const owner1 = ownerOfTerminal(key1), owner2 = ownerOfTerminal(key2);
+  const dot1 = dir1.x*(x2-x1) + dir1.y*(y2-y1);
+  const dot2 = dir2.x*(x1-x2) + dir2.y*(y1-y2);
+  const selfBlock1 = dot1<-5, selfBlock2 = dot2<-5;
+  const bothSelfBlocked = selfBlock1 && selfBlock2;
+
+  const blockers = [];
+  if(!bothSelfBlocked){
+    if(selfBlock1) blockers.push(rectFor(owner1));
+    if(selfBlock2) blockers.push(rectFor(owner2));
+    Object.keys(compCenters).forEach(compKey=>{
+      if(compKey===owner1 || compKey===owner2) return;
+      const rect = rectFor(compKey);
+      if(lineCrossesRect(x1,y1,x2,y2,rect)) blockers.push(rect);
+    });
+  }
+
+  if(blockers.length){
+    // detour around ALL blocking parts with a single smooth cubic curve
+    // (no sharp corners). Bow along whichever axis the connection is
+    // SHORTER on, so the detour blends into the curve instead of sticking
+    // out as a separate loop (e.g. a mostly-vertical connection bows
+    // sideways rather than dipping far past the part and back).
+    const margin = 32;
+    const mostlyVertical = Math.abs(y2-y1) >= Math.abs(x2-x1);
+    if(mostlyVertical){
+      const goRight = blockers.some(b=>b.cx >= boardCenter.x);
+      const laneX = goRight
+        ? Math.max(...blockers.map(b=>b.maxX)) + margin
+        : Math.min(...blockers.map(b=>b.minX)) - margin;
+      return `M ${x1} ${y1} C ${laneX} ${y1}, ${laneX} ${y2}, ${x2} ${y2}`;
+    }
+    const goBelow = blockers.some(b=>b.cy >= boardCenter.y);
+    const laneY = goBelow
+      ? Math.max(...blockers.map(b=>b.maxY)) + margin
+      : Math.min(...blockers.map(b=>b.minY)) - margin;
+    return `M ${x1} ${y1} C ${x1} ${laneY}, ${x2} ${laneY}, ${x2} ${y2}`;
+  }
+
+  const c1 = { x:x1+dir1.x*stub, y:y1+dir1.y*stub };
+  const c2 = { x:x2+dir2.x*stub, y:y2+dir2.y*stub };
+  // nudge both control points away from the board's center, so the curve
+  // bows out toward open space rather than dipping back over a part
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  const away = normalize(mx-boardCenter.x, my-boardCenter.y);
+  const bow = 70;
+  c1.x += away.x*bow; c1.y += away.y*bow;
+  c2.x += away.x*bow; c2.y += away.y*bow;
+  return `M ${x1} ${y1} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${x2} ${y2}`;
+}
+
+function drawWires(poweredSet){
+  wireLayer.innerHTML='';
+  userWires.forEach((w,idx)=>{
+    const t1=terminals[w.a], t2=terminals[w.b];
+    if(!t1 || !t2) return;
+    const d = wirePath(t1,t2,w.a,w.b);
+    const g = el('g',{class:'wire-group'});
+    const hit = el('path',{d, class:'wire-hit'});
+    const casing = el('path',{d, class:'wire-casing'});
+    const core = el('path',{d, class:'wire-core'});
+    const wkey1 = w.a+'|'+w.b, wkey2=w.b+'|'+w.a;
+    if(poweredSet.has(wkey1)||poweredSet.has(wkey2)) core.classList.add('on');
+    hit.addEventListener('click',(e)=>{e.stopPropagation(); userWires.splice(idx,1); render();});
+    g.appendChild(casing); g.appendChild(core); g.appendChild(hit);
+    wireLayer.appendChild(g);
+  });
+}
+
+/* ---------------- Union-Find / polarity-aware circuit analysis ---------------- */
+class UF{
+  constructor(items){ this.p={}; items.forEach(i=>this.p[i]=i); }
+  find(x){ while(this.p[x]!==x){ x=this.p[x]; } return x; }
+  union(a,b){ const ra=this.find(a), rb=this.find(b); if(ra!==rb) this.p[ra]=rb; }
+}
+
+/* Merges every zero-resistance connection (user wires + a closed switch),
+   then walks the battery edges to assign a relative voltage to every
+   reachable node, starting from the motor's own node at 0V. This correctly
+   distinguishes a true series/parallel hookup from one where two batteries
+   are wired so their voltages CANCEL (e.g. both minus terminals tied
+   together) — in that case the motor's two nodes end up at the SAME
+   voltage, so the voltage difference across the motor is zero and it
+   will not spin, even though the wiring looks like a closed loop. */
+function computeCircuitState(){
+  const uf = new UF(Object.keys(terminals));
+  userWires.forEach(w=>uf.union(w.a,w.b));
+  if(switchOn) uf.union('sw_a','sw_b');
+  const rep = k=>uf.find(k);
+
+  const mA=rep('m_a'), mB=rep('m_b');
+  if(mA===mB) return {result:{powered:false, type:'none'}, uf, V:{}};
+
+  const battEdges = [];
+  ['bat1','bat2'].forEach(id=>{
+    const lo = rep(id+'_minus'), hi = rep(id+'_plus');
+    if(lo!==hi) battEdges.push({lo,hi,id});
+  });
+  if(battEdges.length===0) return {result:{powered:false, type:'none'}, uf, V:{}};
+
+  const V = {}; V[mA]=0;
+  let conflict=false;
+  const queue=[mA];
+  while(queue.length){
+    const node = queue.shift();
+    battEdges.forEach(e=>{
+      if(e.lo===node){
+        const nv = V[node]+1.5;
+        if(e.hi in V){ if(Math.abs(V[e.hi]-nv)>0.05) conflict=true; }
+        else { V[e.hi]=nv; queue.push(e.hi); }
+      }
+      if(e.hi===node){
+        const nv = V[node]-1.5;
+        if(e.lo in V){ if(Math.abs(V[e.lo]-nv)>0.05) conflict=true; }
+        else { V[e.lo]=nv; queue.push(e.lo); }
+      }
+    });
+  }
+
+  if(!(mB in V)) return {result:{powered:false, type:'none'}, uf, V};
+
+  const participating = battEdges.filter(e=> (e.lo in V) && (e.hi in V));
+  const dV = Math.abs((V[mB]||0) - (V[mA]||0));
+
+  let result;
+  if(dV < 0.3){
+    result = {powered:false, type: (conflict || participating.length>=2) ? 'reversed' : 'none'};
+  } else if(conflict){
+    result = {powered:false, type:'reversed'};
+  } else if(dV < 2.2){
+    result = {powered:true, type: participating.length>=2 ? 'parallel' : 'single'};
+  } else {
+    result = {powered:true, type:'series'};
+  }
+  return {result, uf, V};
+}
+
+function poweredWireSet(uf, V, powered){
+  const set = new Set();
+  if(!powered) return set;
+  userWires.forEach(w=>{
+    const r = uf.find(w.a);
+    if(r in V){ set.add(w.a+'|'+w.b); }
+  });
+  return set;
+}
+
+/* ---------------- Render ---------------- */
+let spinTimer=null;
+function updateMotorSpin(result){
+  if(spinTimer){ cancelAnimationFrame(spinTimer); spinTimer=null; }
+  if(!result.powered){ redrawMotorAt(spinAngle); return; }
+  let speed = 2;
+  if(result.type==='series') speed = 6;
+  else if(result.type==='parallel') speed = 2.2;
+  else if(result.type==='single') speed = 2.2;
+  function step(){
+    spinAngle = (spinAngle + speed) % 360;
+    redrawMotorAt(spinAngle);
+    spinTimer = requestAnimationFrame(step);
+  }
+  step();
+}
+function redrawMotorAt(angle){
+  const propG = compLayer.querySelector('#liveMotorProp');
+  if(propG) propG.setAttribute('transform', `rotate(${angle} ${compCenters.motor.x} ${compCenters.motor.y})`);
+}
+
+function renderComponents(result){
+  compLayer.innerHTML='';
+  Object.entries(compCenters).forEach(([compKey, center])=>{
+    if(compKey==='bat1') drawBattery(compLayer, center, 'かん電池1');
+    if(compKey==='bat2') drawBattery(compLayer, center, 'かん電池2');
+    if(compKey==='switch') drawSwitch(compLayer, center, switchOn);
+    if(compKey==='motor'){
+      drawMotor(compLayer, center, spinAngle, 'モーター');
+    }
+  });
+  // tag the live propeller group for animation (last g > the propeller group is 2nd child inside motor's g)
+  const motorGroups = compLayer.querySelectorAll('g');
+  motorGroups.forEach(g=>{
+    // identify propeller group by having 3 path children with class propeller-blade as grandchildren
+    const paths = g.querySelectorAll(':scope > g > path.propeller-blade');
+    if(paths.length===3){ g.querySelector(':scope > g').id='liveMotorProp'; }
+  });
+}
+
+function updateStatusPanel(result){
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const detail = document.getElementById('statusDetail');
+  dot.classList.toggle('on', result.powered);
+  if(!result.powered){
+    text.textContent = 'かいろは まだ できていません';
+    detail.textContent = !switchOn
+      ? 'スイッチがOFFになっているよ。スイッチをタップしてONにしてみよう。'
+      : '線がつながっていないところがあるよ。すべての部品が輪のようにつながるように線をつなごう。';
+  } else if(result.type==='series'){
+    text.textContent = '直列つなぎ！モーターが はやく回るよ';
+    detail.textContent = '2このかん電池が、ひとつの道（じゅんろ）でつながっているね。これが「直列つなぎ」。電気の力が強くなって、モーターが速く回るよ。';
+  } else if(result.type==='parallel'){
+    text.textContent = '並列つなぎ！長持ちするよ';
+    detail.textContent = '2このかん電池が、それぞれべつの道でモーターにつながっているね。これが「並列つなぎ」。速さは1このときと同じだけど、電池が長持ちするよ。';
+  } else if(result.type==='single'){
+    text.textContent = 'かいろ完成！（かん電池1こ）';
+    detail.textContent = 'かん電池1こでモーターが回っているよ。もう1このかん電池もつないで、直列・並列をくらべてみよう。';
+  } else if(result.type==='reversed'){
+    text.textContent = 'このつなぎ方では モーターは回らないよ';
+    detail.textContent = '2このかん電池が、おたがいの電気を おしあって、打ち消しあっているよ。輪のようにつながっているのに電気が流れないのは、かん電池の向き（＋とー）が合っていないからだよ。＋とーのつなぎ方を見直してみよう。';
+  }
+}
+
+function checkGoalAndCelebrate(result){
+  const banner = document.getElementById('successBanner');
+  let success = false;
+  if(typeof mode === 'number'){
+    const target = problems[mode-1].type;
+    if(result.powered && result.type===target) success = true;
+  }
+  banner.style.display = success ? 'block' : 'none';
+}
+
+function render(){
+  const { result, uf, V } = computeCircuitState();
+  const pset = poweredWireSet(uf, V, result.powered);
+  renderComponents(result);
+  drawTerminals();
+  drawWires(pset);
+  updateMotorSpin(result);
+  updateStatusPanel(result);
+  checkGoalAndCelebrate(result);
+  updatePressSwitchBtn();
+}
+
+/* ---------------- Switch press button ---------------- */
+const pressSwitchBtn = document.getElementById('pressSwitchBtn');
+pressSwitchBtn.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  switchOn = !switchOn;
+  render();
+});
+function updatePressSwitchBtn(){
+  pressSwitchBtn.textContent = switchOn ? '⚡ スイッチを切る（今:ON）' : '⚡ スイッチを押す（今:OFF）';
+  pressSwitchBtn.classList.toggle('is-on', switchOn);
+}
+
+/* click empty board cancels selection */
+svg.addEventListener('click', ()=>{ selectedTerm=null; render(); });
+
+/* ---------------- Mode / problem controls ---------------- */
+const freeGoalText = 'かん電池・スイッチ・モーターを、すきなように線でつないでみよう。たんしの○をタップして線をつなぐよ。';
+
+function setGoalForProblem(p){
+  const typeLabel = p.type==='series' ? '直列つなぎ' : '並列つなぎ';
+  document.getElementById('goalText').innerHTML =
+    `<span class="tag">問題${p.num}</span><b>${typeLabel}</b>を作ろう！　かん電池2こ・スイッチ・モーターを すべて線でつないでね。`;
+}
+
+function selectFree(){
+  mode='free';
+  currentLayout = freeLayout;
+  applyLayout(currentLayout);
+  userWires=[]; selectedTerm=null; switchOn=false;
+  document.getElementById('goalText').innerHTML = freeGoalText;
+  document.getElementById('freeBtn').classList.add('active');
+  document.querySelectorAll('.probgrid button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('successBanner').style.display='none';
+  render();
+}
+function selectProblem(num){
+  mode = num;
+  const p = problems[num-1];
+  currentLayout = p.layout;
+  applyLayout(currentLayout);
+  userWires=[]; selectedTerm=null; switchOn=false;
+  setGoalForProblem(p);
+  document.getElementById('freeBtn').classList.remove('active');
+  document.querySelectorAll('.probgrid button').forEach(b=>b.classList.toggle('active', Number(b.dataset.num)===num));
+  document.getElementById('successBanner').style.display='none';
+  render();
+}
+
+document.getElementById('freeBtn').addEventListener('click', selectFree);
+
+const probGrid = document.getElementById('probGrid');
+problems.forEach(p=>{
+  const btn = document.createElement('button');
+  btn.textContent = p.num;
+  btn.dataset.num = p.num;
+  btn.title = (p.type==='series' ? '直列' : '並列') + 'チャレンジ';
+  btn.addEventListener('click', ()=> selectProblem(p.num));
+  probGrid.appendChild(btn);
+});
+
+document.getElementById('clearWires').addEventListener('click', (e)=>{
+  e.stopPropagation(); userWires = []; selectedTerm = null; render();
+});
+document.getElementById('resetAll').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  if(typeof mode === 'number') selectProblem(mode); else selectFree();
+});
+
+/* ---------------- init ---------------- */
+applyLayout(currentLayout);
+render();
+</script>
+</body>
+</html>
