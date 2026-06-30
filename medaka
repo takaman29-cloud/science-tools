@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>メダカ オス・メス見分けゲーム</title>
+<style>
+  :root{
+    --water-deep:#0d3b4f;
+    --water-mid:#155873;
+    --water-light:#2c7a96;
+    --sun:#ffe9a8;
+    --weed:#1f5e45;
+    --male:#2f6fb0;
+    --female:#d9772f;
+    --panel:#0b2a38;
+    --panel-line:#2c7a96;
+    --good:#3fae6a;
+    --bad:#c84b4b;
+    --text:#eaf6fb;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    background:var(--water-deep);
+    color:var(--text);
+    overflow:hidden;
+  }
+  #app{
+    position:relative;
+    width:100vw;height:100vh;
+    display:flex;flex-direction:column;
+  }
+  #hud{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 14px;
+    background:linear-gradient(180deg,var(--panel),rgba(11,42,56,0.85));
+    border-bottom:2px solid var(--panel-line);
+    z-index:10;
+    flex-wrap:wrap;
+  }
+  #hud .group{display:flex;align-items:center;gap:8px;font-size:14px;}
+  #hud .big{font-size:20px;font-weight:bold;}
+  #target-badge{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,0.25);
+    padding:4px 12px;
+    border-radius:20px;
+    border:2px solid var(--panel-line);
+  }
+  #target-icon{font-size:22px;}
+  #lifebar{display:flex;gap:4px;}
+  .heart{font-size:18px;}
+  #stage-wrap{
+    position:relative;
+    flex:1;
+    overflow:hidden;
+  }
+  canvas{
+    display:block;
+    width:100%;height:100%;
+  }
+  .overlay{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(5,20,28,0.82);
+    z-index:20;
+  }
+  .card{
+    background:linear-gradient(160deg,#0f3a4d,#0b2632);
+    border:3px solid var(--panel-line);
+    border-radius:18px;
+    padding:28px 32px;
+    max-width:560px;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  .card h1{margin:0 0 6px;font-size:26px;color:var(--sun);}
+  .card h2{margin:0 0 14px;font-size:18px;color:var(--text);font-weight:normal;}
+  .card p{line-height:1.7;font-size:15px;margin:10px 0;}
+  .fin-illust{display:flex;justify-content:center;gap:30px;margin:18px 0;}
+  .fin-card{
+    background:rgba(255,255,255,0.06);
+    border-radius:12px;padding:10px 16px;
+    width:170px;
+  }
+  .fin-card svg{width:100%;height:70px;}
+  .fin-card .label{font-weight:bold;margin-top:6px;font-size:14px;}
+  .btn{
+    display:inline-block;
+    margin-top:14px;
+    padding:12px 30px;
+    font-size:17px;
+    font-weight:bold;
+    border:none;
+    border-radius:30px;
+    cursor:pointer;
+    background:linear-gradient(180deg,#ffd76a,#f0a93a);
+    color:#3a2400;
+    box-shadow:0 4px 0 #b97c1d;
+    transition:transform .08s;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b97c1d;}
+  .btn.secondary{
+    background:linear-gradient(180deg,#7fd4c1,#3fae8a);
+    color:#063a2c;
+    box-shadow:0 4px 0 #1f6a52;
+    margin-left:10px;
+  }
+  #level-pill{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,0.35);
+    padding:4px 18px;border-radius:20px;
+    font-size:14px;border:1px solid var(--panel-line);
+    z-index:15;
+  }
+  #combo-pop{
+    position:absolute;
+    pointer-events:none;
+    font-weight:bold;
+    font-size:18px;
+    text-shadow:0 0 6px rgba(0,0,0,0.6);
+    z-index:30;
+    animation:floatUp 0.9s ease-out forwards;
+  }
+  @keyframes floatUp{
+    0%{opacity:1; transform:translateY(0) scale(1);}
+    100%{opacity:0; transform:translateY(-40px) scale(1.2);}
+  }
+  #progress-wrap{
+    width:160px;height:10px;background:rgba(255,255,255,0.15);
+    border-radius:6px;overflow:hidden;
+  }
+  #progress-bar{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,#ffe9a8,#f0a93a);
+    transition:width .25s;
+  }
+  .hint-btn{
+    background:rgba(255,255,255,0.12);
+    border:1px solid var(--panel-line);
+    color:var(--text);
+    border-radius:14px;
+    padding:4px 12px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  #legend-panel{
+    position:absolute;
+    bottom:10px;left:10px;
+    background:rgba(8,30,40,0.85);
+    border:1px solid var(--panel-line);
+    border-radius:12px;
+    padding:8px 12px;
+    font-size:12px;
+    line-height:1.5;
+    max-width:230px;
+    display:none;
+    z-index:25;
+  }
+  #legend-panel.show{display:block;}
+  .card.final-clear{
+    background:linear-gradient(160deg,#3a2d6b,#7a3fae 40%,#f0a93a);
+    border-color:#ffe9a8;
+    box-shadow:0 0 40px rgba(255,233,168,0.6), 0 10px 30px rgba(0,0,0,0.5);
+    animation:glowPulse 1.6s ease-in-out infinite;
+  }
+  .card.final-clear h1{
+    font-size:30px;
+    color:#fff7da;
+    text-shadow:0 0 12px rgba(255,233,168,0.9);
+  }
+  @keyframes glowPulse{
+    0%,100%{box-shadow:0 0 30px rgba(255,233,168,0.5), 0 10px 30px rgba(0,0,0,0.5);}
+    50%{box-shadow:0 0 55px rgba(255,233,168,0.9), 0 10px 30px rgba(0,0,0,0.5);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="group">
+      <span>レベル</span><span class="big" id="hud-level">1</span>
+    </div>
+    <div id="target-badge">
+      <span id="target-icon">♂</span>
+      <span id="target-text">オスをタップ！</span>
+    </div>
+    <div class="group">
+      <span>のこり</span>
+      <div id="progress-wrap"><div id="progress-bar"></div></div>
+      <span id="progress-text">0/8</span>
+    </div>
+    <div class="group">
+      <span>スコア</span><span class="big" id="hud-score">0</span>
+    </div>
+    <div class="group" id="lifebar"></div>
+    <button class="hint-btn" id="legend-toggle">見分け方を見る</button>
+  </div>
+  <div id="stage-wrap">
+    <canvas id="game"></canvas>
+    <div id="level-pill">レベル 1 / 10</div>
+    <div id="legend-panel">
+      <b>見分け方</b><br>
+      せびれ：オスは切れこみがあり大きい／メスは丸くて小さい<br>
+      しりびれ：オスは平行四辺形で大きい／メスは三角形で小さい
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="start-overlay">
+  <div class="card">
+    <h1>メダカ オス・メス 見分けゲーム</h1>
+    <h2>水そうを泳ぐメダカを見て、せびれ・しりびれの形で見分けよう！</h2>
+    <div class="fin-illust">
+      <div class="fin-card">
+        <svg viewBox="0 0 160 70">
+          <defs>
+            <linearGradient id="bodyG1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f4c247"/>
+              <stop offset="45%" stop-color="#eda52e"/>
+              <stop offset="46%" stop-color="#7fb7ad"/>
+              <stop offset="100%" stop-color="#3f7e82"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="70" fill="#0b2a38" rx="10"/>
+          <polygon points="118,35 142,21 142,49" fill="#f0be5a" stroke="#caa23a" stroke-width="0.6"/>
+          <ellipse cx="78" cy="35" rx="40" ry="13" fill="url(#bodyG1)"/>
+          <circle cx="62" cy="32" r="3" fill="#1b3a52"/>
+          <circle cx="63" cy="31" r="1" fill="#bfe3ef"/>
+          <path d="M95,23 Q102,8 111,12 Q108,20 113,23 Q104,21 95,23 Z" fill="#f0be5a" stroke="#caa23a" stroke-width="0.6"/>
+          <path d="M88,44 L114,36 L117,47 L92,53 Z" fill="#f0be5a" stroke="#caa23a" stroke-width="0.6"/>
+        </svg>
+        <div class="label" style="color:var(--text)">オス：せびれに切れこみがあり大きい／しりびれは平行四辺形で大きい</div>
+      </div>
+      <div class="fin-card">
+        <svg viewBox="0 0 160 70">
+          <defs>
+            <linearGradient id="bodyG2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f4c247"/>
+              <stop offset="45%" stop-color="#eda52e"/>
+              <stop offset="46%" stop-color="#7fb7ad"/>
+              <stop offset="100%" stop-color="#3f7e82"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="70" fill="#0b2a38" rx="10"/>
+          <polygon points="118,35 142,21 142,49" fill="#f0be5a" stroke="#caa23a" stroke-width="0.6"/>
+          <ellipse cx="78" cy="35" rx="40" ry="13" fill="url(#bodyG2)"/>
+          <circle cx="62" cy="32" r="3" fill="#1b3a52"/>
+          <circle cx="63" cy="31" r="1" fill="#bfe3ef"/>
+          <path d="M97,24 Q105,16 112,23 Q104,25 97,24 Z" fill="#f0be5a" stroke="#caa23a" stroke-width="0.6"/>
+          <path d="M88,44 L92,53 L114,40 Z" fill="#f0be5a" stroke="#caa23a" stroke-width="0.6"/>
+        </svg>
+        <div class="label" style="color:var(--text)">メス：せびれは丸く切れこみなし・小さい／しりびれは三角形で小さい</div>
+      </div>
+    </div>
+    <p>レベル1〜10まで、メダカの数・スピードが上がり、レベル5からは他の淡水魚（フナやタナゴなど）もまじります。タップしてはいけない魚に注意！</p>
+    <button class="btn" id="start-btn">スタート！</button>
+  </div>
+</div>
+
+<div class="overlay" id="result-overlay" style="display:none;">
+  <div class="card">
+    <h1 id="result-title">レベルクリア！</h1>
+    <p id="result-detail"></p>
+    <button class="btn" id="next-btn">次のレベルへ</button>
+    <button class="btn secondary" id="retry-btn">もう一度</button>
+  </div>
+</div>
+
+<div class="overlay" id="gameover-overlay" style="display:none;">
+  <div class="card">
+    <h1>残念！</h1>
+    <p id="gameover-detail"></p>
+    <button class="btn" id="restart-btn">最初からやりなおす</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const stageWrap = document.getElementById('stage-wrap');
+
+  function resize(){
+    canvas.width = stageWrap.clientWidth;
+    canvas.height = stageWrap.clientHeight;
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- Level config ----------
+  // count, speedRange, decoyChance(0-1), decoyTypes count, lives
+  const LEVELS = [
+    {count:5,  speed:[0.5,0.9], decoy:0,    needCorrect:6,  lives:3},
+    {count:6,  speed:[0.6,1.0], decoy:0,    needCorrect:7,  lives:3},
+    {count:7,  speed:[0.7,1.1], decoy:0,    needCorrect:8,  lives:3},
+    {count:8,  speed:[0.8,1.3], decoy:0.1,  needCorrect:9,  lives:3},
+    {count:9,  speed:[0.9,1.4], decoy:0.15, needCorrect:10, lives:3},
+    {count:10, speed:[1.0,1.6], decoy:0.2,  needCorrect:10, lives:2},
+    {count:11, speed:[1.1,1.7], decoy:0.25, needCorrect:11, lives:2},
+    {count:12, speed:[1.2,1.9], decoy:0.3,  needCorrect:12, lives:2},
+    {count:13, speed:[1.3,2.1], decoy:0.35, needCorrect:13, lives:2},
+    {count:14, speed:[1.4,2.3], decoy:0.4,  needCorrect:14, lives:1},
+  ];
+
+  let state = {
+    level: 1,
+    score: 0,
+    lives: 3,
+    target: 'male', // 'male' or 'female'
+    correctNeeded: 6,
+    correctCount: 0,
+    wrongCount: 0,
+    fishes: [],
+    running: false,
+    lastTime: 0,
+  };
+
+  const targetIcon = document.getElementById('target-icon');
+  const targetText = document.getElementById('target-text');
+  const hudLevel = document.getElementById('hud-level');
+  const hudScore = document.getElementById('hud-score');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const lifebar = document.getElementById('lifebar');
+  const levelPill = document.getElementById('level-pill');
+  const legendPanel = document.getElementById('legend-panel');
+  const legendToggle = document.getElementById('legend-toggle');
+
+  legendToggle.addEventListener('click', ()=>{
+    legendPanel.classList.toggle('show');
+  });
+
+  function setTarget(t){
+    state.target = t;
+    if(t==='male'){
+      targetIcon.textContent = '♂';
+      targetText.textContent = 'オスをタップ！';
+      targetIcon.style.color = 'var(--male)';
+    } else {
+      targetIcon.textContent = '♀';
+      targetText.textContent = 'メスをタップ！';
+      targetIcon.style.color = 'var(--female)';
+    }
+  }
+
+  function updateHud(){
+    hudLevel.textContent = state.level;
+    hudScore.textContent = state.score;
+    levelPill.textContent = 'レベル ' + state.level + ' / 10';
+    const pct = Math.min(100, Math.round(100*state.correctCount/state.correctNeeded));
+    progressBar.style.width = pct + '%';
+    progressText.textContent = state.correctCount + '/' + state.correctNeeded;
+    lifebar.innerHTML = '';
+    for(let i=0;i<state.lives;i++){
+      const s = document.createElement('span');
+      s.className='heart'; s.textContent='❤️';
+      lifebar.appendChild(s);
+    }
+  }
+
+  // ---------- Fish object ----------
+  function rand(a,b){return a+Math.random()*(b-a);}
+
+  function makeFish(cfg){
+    const isDecoy = Math.random() < cfg.decoy;
+    let sex = Math.random()<0.5 ? 'male':'female';
+    const speed = rand(cfg.speed[0], cfg.speed[1]) * (Math.random()<0.5?1:-1);
+    const y = rand(60, canvas.height-60);
+    const x = speed>0 ? -40 : canvas.width+40;
+    const scale = rand(0.85,1.15);
+    const wobblePhase = Math.random()*Math.PI*2;
+    const decoyType = isDecoy ? (Math.random()<0.5?'goldfish':'tanago') : null;
+    return {
+      x,y,speed,scale,wobblePhase,
+      isDecoy, decoyType, sex,
+      dead:false,
+      vy: rand(-0.15,0.15),
+      t: Math.random()*1000,
+    };
+  }
+
+  function spawnFishes(){
+    const cfg = LEVELS[state.level-1];
+    state.fishes = [];
+    for(let i=0;i<cfg.count;i++){
+      state.fishes.push(makeFish(cfg));
+    }
+  }
+
+  // ---------- Drawing ----------
+  function drawBackground(time){
+    const g = ctx.createLinearGradient(0,0,0,canvas.height);
+    g.addColorStop(0,'#1f6f8c');
+    g.addColorStop(0.5,'#155873');
+    g.addColorStop(1,'#0a2e3d');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // sunlight rays
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = '#ffe9a8';
+    for(let i=0;i<5;i++){
+      const x = (i*160 + (time*0.01)%160) - 80;
+      ctx.beginPath();
+      ctx.moveTo(x,0);
+      ctx.lineTo(x+60,0);
+      ctx.lineTo(x-40,canvas.height);
+      ctx.lineTo(x-100,canvas.height);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // weeds at bottom
+    ctx.save();
+    ctx.strokeStyle = '#1f5e45';
+    ctx.lineWidth = 8;
+    ctx.lineCap='round';
+    for(let i=0;i<8;i++){
+      const bx = (i*canvas.width/8) + 20;
+      const sway = Math.sin(time*0.001 + i)*10;
+      ctx.beginPath();
+      ctx.moveTo(bx, canvas.height);
+      ctx.quadraticCurveTo(bx+sway, canvas.height-40, bx+sway*0.5, canvas.height-80);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMedaka(f){
+    const dir = f.speed>0 ? -1 : 1; // 目のある側（頭）が進行方向を向くように
+    ctx.save();
+    ctx.translate(f.x, f.y + Math.sin(f.t*0.06)*4);
+    ctx.scale(dir*f.scale, f.scale);
+
+    // ----- 同じ体色（オスもメスも金色＋お腹は青緑）-----
+    const bodyGrad = ctx.createLinearGradient(-30,-12,-30,16);
+    bodyGrad.addColorStop(0,'#f4c247');
+    bodyGrad.addColorStop(0.45,'#eda52e');
+    bodyGrad.addColorStop(0.46,'#7fb7ad');
+    bodyGrad.addColorStop(1,'#3f7e82');
+    const finColor = 'rgba(240,190,90,0.85)';
+    const finLine = '#caa23a';
+
+    const tailWag = Math.sin(f.t*0.2)*5;
+
+    // tail fin (丸い扇形・へこみなし・80%サイズ)
+    ctx.fillStyle = finColor;
+    ctx.beginPath();
+    ctx.moveTo(27,0);
+    ctx.quadraticCurveTo(32.6,-12+tailWag*0.4, 47,-12+tailWag*0.8);
+    ctx.quadraticCurveTo(53.4,0+tailWag*0.24, 47,12+tailWag*0.8);
+    ctx.quadraticCurveTo(32.6,12+tailWag*0.4, 27,0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = finLine;
+    ctx.lineWidth = 0.6;
+    for(let i=-4;i<=4;i++){
+      ctx.beginPath();
+      ctx.moveTo(28.6,i*0.96);
+      ctx.lineTo(48.6, i*2.64 + tailWag*0.48);
+      ctx.stroke();
+    }
+
+    // body (紡錘形)
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.moveTo(-30,0);
+    ctx.quadraticCurveTo(-28,-10, 0,-10);
+    ctx.quadraticCurveTo(26,-10, 32,0);
+    ctx.quadraticCurveTo(26,10, 0,10);
+    ctx.quadraticCurveTo(-28,10,-30,0);
+    ctx.closePath();
+    ctx.fill();
+
+    // うろこ模様
+    ctx.strokeStyle = 'rgba(180,120,20,0.35)';
+    ctx.lineWidth = 0.5;
+    for(let row=-6; row<=6; row+=4){
+      for(let col=-22; col<=22; col+=6){
+        ctx.beginPath();
+        ctx.arc(col,row,3,Math.PI*0.15,Math.PI*0.85);
+        ctx.stroke();
+      }
+    }
+
+    // 頭部のハイライト
+    ctx.fillStyle='rgba(255,235,180,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(-20,-4,7,3,0.3,0,Math.PI*2);
+    ctx.fill();
+
+    // 背びれ（せびれ）- オスは切れこみあり・大きい／メスは丸く・小さい
+    ctx.fillStyle = finColor;
+    ctx.strokeStyle = finLine;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    if(f.sex==='male'){
+      ctx.moveTo(8,-9);
+      ctx.quadraticCurveTo(14,-23, 21,-20);
+      ctx.quadraticCurveTo(19,-13, 23,-9);
+      ctx.quadraticCurveTo(16,-12, 8,-9);
+    } else {
+      ctx.moveTo(10,-9);
+      ctx.quadraticCurveTo(16,-15, 21,-9);
+      ctx.quadraticCurveTo(16,-11, 10,-9);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // しりびれ - オスは大きく長方形／メスは小さく三角形
+    ctx.beginPath();
+    if(f.sex==='male'){
+      ctx.moveTo(2,9);
+      ctx.lineTo(24,4);
+      ctx.lineTo(26.5,11.5);
+      ctx.lineTo(4.5,16.5);
+      ctx.closePath();
+    } else {
+      ctx.moveTo(2,9);
+      ctx.lineTo(4.5,16.5);
+      ctx.lineTo(24,8);
+      ctx.closePath();
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    // 腹びれ（小さめ・両性とも同じ）
+    ctx.beginPath();
+    ctx.ellipse(-6,9,5,2.4,0.2,0,Math.PI*2);
+    ctx.fill();
+
+    // 胸びれ（頭の近く）
+    ctx.beginPath();
+    ctx.ellipse(-12,2,7,3,-0.35,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    // 目（頭側＝尾びれと反対側、メダカらしい大きな目）
+    ctx.fillStyle = '#1b3a52';
+    ctx.beginPath();
+    ctx.arc(-22,-2.5,3.4,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#bfe3ef';
+    ctx.beginPath();
+    ctx.arc(-21,-4,1.1,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle='rgba(120,80,10,0.5)';
+    ctx.lineWidth=0.8;
+    ctx.beginPath();
+    ctx.arc(-22,-2.5,3.6,0,Math.PI*2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawDecoy(f){
+    const dir = f.speed>0 ? -1 : 1; // 目のある側（頭）が進行方向を向くように
+    ctx.save();
+    ctx.translate(f.x, f.y + Math.sin(f.t*0.05)*3);
+    ctx.scale(dir*f.scale*1.15, f.scale*1.15);
+
+    if(f.decoyType === 'goldfish'){
+      // rounder body, frilly tail, reddish-orange, distinctly different
+      ctx.fillStyle = '#e0512f';
+      ctx.beginPath();
+      ctx.ellipse(0,0,26,16,0,0,Math.PI*2);
+      ctx.fill();
+      // frilly tail
+      ctx.fillStyle = '#f08060';
+      ctx.beginPath();
+      ctx.moveTo(24,0);
+      ctx.quadraticCurveTo(45,-22,52,-4);
+      ctx.quadraticCurveTo(40,2,46,10);
+      ctx.quadraticCurveTo(40,4,52,18);
+      ctx.quadraticCurveTo(40,16,24,0);
+      ctx.fill();
+      // top fin
+      ctx.beginPath();
+      ctx.ellipse(-2,-15,10,5,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#06222e';
+      ctx.beginPath();
+      ctx.arc(-16,-4,3,0,Math.PI*2);
+      ctx.fill();
+    } else {
+      // tanago-like: flat silver body, diamond shape, blue-green stripe
+      ctx.fillStyle = '#a9c6c9';
+      ctx.beginPath();
+      ctx.ellipse(0,0,28,15,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a6e6a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-20,3); ctx.lineTo(20,3);
+      ctx.stroke();
+      // tail
+      ctx.fillStyle = '#a9c6c9';
+      ctx.beginPath();
+      ctx.moveTo(26,0);
+      ctx.lineTo(42,-12);
+      ctx.lineTo(42,12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#06222e';
+      ctx.beginPath();
+      ctx.arc(-18,-3,2.8,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function fishHitTest(f, px, py){
+    const dx = px - f.x;
+    const dy = py - (f.y + Math.sin(f.t*0.06)*4);
+    const rx = 40*f.scale, ry = 22*f.scale;
+    return (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry) <= 1;
+  }
+
+  // ---------- Popup feedback ----------
+  function popup(x,y,text,color){
+    const el = document.createElement('div');
+    el.id='combo-pop';
+    el.style.left = x+'px';
+    el.style.top = y+'px';
+    el.style.color = color;
+    el.textContent = text;
+    stageWrap.appendChild(el);
+    setTimeout(()=>el.remove(), 900);
+  }
+
+  // ---------- Game loop ----------
+  function loop(ts){
+    if(!state.running) return;
+    if(!state.lastTime) state.lastTime = ts;
+    const dt = Math.min(40, ts - state.lastTime);
+    state.lastTime = ts;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawBackground(ts);
+
+    for(const f of state.fishes){
+      if(f.dead) continue;
+      f.t += dt*0.06;
+      f.x += f.speed * dt * 0.06;
+      f.y += f.vy;
+      if(f.y < 50) f.vy = Math.abs(f.vy);
+      if(f.y > canvas.height-50) f.vy = -Math.abs(f.vy);
+      if(f.x < -70 || f.x > canvas.width+70){
+        // respawn from same side it exits opposite, recycle
+        Object.assign(f, makeFish(LEVELS[state.level-1]));
+      }
+      if(f.isDecoy) drawDecoy(f); else drawMedaka(f);
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  canvas.addEventListener('click', (e)=>{
+    if(!state.running) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+
+    for(let i=state.fishes.length-1;i>=0;i--){
+      const f = state.fishes[i];
+      if(f.dead) continue;
+      if(fishHitTest(f, px, py)){
+        handleHit(f, px, py);
+        return;
+      }
+    }
+  });
+
+  function handleHit(f, px, py){
+    if(f.isDecoy){
+      // wrong: clicked a non-medaka fish
+      registerWrong(px,py,'ほかの魚！');
+      return;
+    }
+    if(f.sex === state.target){
+      state.correctCount++;
+      state.score += 10;
+      popup(px,py,'+10 せいかい！','#7fffb0');
+      // respawn this fish as a new random one to keep variety
+      Object.assign(f, makeFish(LEVELS[state.level-1]));
+      updateHud();
+      checkLevelComplete();
+    } else {
+      registerWrong(px,py,'ちがう せい別！');
+    }
+  }
+
+  function registerWrong(px,py,msg){
+    state.wrongCount++;
+    state.lives--;
+    popup(px,py,msg,'#ff8a8a');
+    updateHud();
+    if(state.lives<=0){
+      endGame(false);
+    }
+  }
+
+  function checkLevelComplete(){
+    if(state.correctCount >= state.correctNeeded){
+      endLevel(true);
+    }
+  }
+
+  function endLevel(success){
+    state.running = false;
+    const isFinal = state.level >= LEVELS.length;
+    const card = document.querySelector('#result-overlay .card');
+    document.getElementById('result-title').textContent =
+      'レベル' + state.level + ' クリア！';
+    document.getElementById('result-detail').innerHTML =
+      'スコア：' + state.score + '<br>正解数：' + state.correctCount + '／まちがい：' + state.wrongCount;
+    document.getElementById('result-overlay').style.display='flex';
+    const nextBtn = document.getElementById('next-btn');
+    const retryBtn = document.getElementById('retry-btn');
+    if(isFinal){
+      nextBtn.textContent = 'さいしょから挑戦';
+      nextBtn.onclick = ()=>{
+        state.level=1; state.score=0;
+        card.classList.remove('final-clear');
+        retryBtn.style.display='';
+        startLevel();
+        document.getElementById('result-overlay').style.display='none';
+      };
+      document.getElementById('result-title').innerHTML = '🎉 全レベル クリア！おめでとう！ 🎉';
+      document.getElementById('result-detail').innerHTML =
+        'メダカのオス・メスを見分ける名人になったね！<br>さいごのスコア：' + state.score +
+        '<br>正解数：' + state.correctCount + '／まちがい：' + state.wrongCount;
+      card.classList.add('final-clear');
+      retryBtn.style.display='none';
+    } else {
+      nextBtn.textContent = '次のレベルへ';
+      nextBtn.onclick = ()=>{ state.level++; startLevel(); document.getElementById('result-overlay').style.display='none'; };
+      card.classList.remove('final-clear');
+      retryBtn.style.display='';
+    }
+  }
+
+  function endGame(){
+    state.running = false;
+    document.getElementById('gameover-detail').innerHTML =
+      'レベル' + state.level + ' でゲームオーバー。<br>スコア：' + state.score;
+    document.getElementById('gameover-overlay').style.display='flex';
+  }
+
+  document.getElementById('retry-btn').onclick = ()=>{
+    document.getElementById('result-overlay').style.display='none';
+    startLevel();
+  };
+  document.getElementById('restart-btn').onclick = ()=>{
+    state.level = 1; state.score = 0;
+    document.getElementById('gameover-overlay').style.display='none';
+    startLevel();
+  };
+
+  function startLevel(){
+    resize();
+    const cfg = LEVELS[state.level-1];
+    state.lives = cfg.lives;
+    state.correctNeeded = cfg.needCorrect;
+    state.correctCount = 0;
+    state.wrongCount = 0;
+    setTarget(Math.random()<0.5 ? 'male':'female');
+    spawnFishes();
+    updateHud();
+    state.running = true;
+    state.lastTime = 0;
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('start-btn').onclick = ()=>{
+    document.getElementById('start-overlay').style.display='none';
+    state.level = 1; state.score = 0;
+    startLevel();
+  };
+
+  resize();
+})();
+</script>
+</body>
+</html>
